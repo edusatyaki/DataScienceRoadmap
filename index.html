@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Roadmap: City Runner</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-pink: #ff00de;
+            --neon-green: #39ff14;
+            --bg-dark: #050505;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Desktop Only Overlay */
+        #mobile-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            #mobile-warning {
+                display: flex;
+            }
+        }
+
+        #mobile-warning h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-pink);
+            margin-bottom: 20px;
+        }
+
+        /* Game UI */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud {
+            position: absolute;
+            padding: 20px;
+            pointer-events: auto;
+        }
+
+        #top-left {
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 4px solid var(--neon-blue);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
+        }
+
+        #top-right {
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-right: 4px solid var(--neon-purple);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
+            text-align: right;
+        }
+
+        .label {
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #888;
+        }
+
+        .value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        #skill-bucket {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            max-width: 250px;
+            margin-top: 10px;
+            justify-content: flex-end;
+        }
+
+        .skill-tag {
+            background: rgba(0, 243, 255, 0.2);
+            border: 1px solid var(--neon-blue);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #progress-container {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            box-shadow: 0 0 15px var(--neon-blue);
+            transition: width 0.3s ease;
+        }
+
+        /* Screens */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, rgba(10, 10, 20, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%);
+            z-index: 100;
+            backdrop-filter: blur(15px);
+            transition: opacity 0.5s ease;
+        }
+
+        .hidden {
+            display: none !important;
+            opacity: 0;
+        }
+
+        h1.title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 64px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+        }
+
+        .btn {
+            font-family: 'Orbitron', sans-serif;
+            padding: 15px 40px;
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            font-size: 20px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+            margin-top: 20px;
+            pointer-events: auto;
+        }
+
+        .btn:hover {
+            background: var(--neon-blue);
+            color: black;
+            box-shadow: 0 0 30px var(--neon-blue);
+        }
+
+        .instruction {
+            margin-top: 40px;
+            font-size: 18px;
+            color: #aaa;
+            display: flex;
+            gap: 20px;
+        }
+
+        .key {
+            border: 1px solid #555;
+            padding: 5px 12px;
+            border-radius: 4px;
+            background: #222;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+            font-family: 'Rajdhani', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        #level-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 10, 20, 0.98);
+            border: 3px solid var(--neon-green);
+            padding: 50px;
+            text-align: center;
+            z-index: 150;
+            border-radius: 20px;
+            box-shadow: 0 0 60px rgba(57, 255, 20, 0.3);
+            max-width: 500px;
+            width: 90%;
+            display: none;
+            pointer-events: auto;
+        }
+
+        #level-modal h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-green);
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        #level-modal .skill-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .summary-tag {
+            background: rgba(57, 255, 20, 0.1);
+            border: 1px solid var(--neon-green);
+            padding: 8px 15px;
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        #career-unlock {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 50;
+        }
+
+        #skill-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(5, 5, 5, 0.95);
+            border: 2px solid var(--neon-blue);
+            padding: 40px;
+            text-align: center;
+            z-index: 100;
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.4);
+            max-width: 400px;
+            width: 90%;
+            display: none;
+            /* Hidden by default */
+            pointer-events: auto;
+        }
+
+        #skill-modal h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-blue);
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        #skill-modal p {
+            color: #ccc;
+            margin-bottom: 30px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .unlock-msg {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            color: var(--neon-green);
+            text-shadow: 0 0 20px var(--neon-green);
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="mobile-warning">
+        <h1>ACCESS DENIED</h1>
+        <p>This simulation requires Desktop Hardware Interface.</p>
+        <p>Please use a keyboard-equipped device.</p>
+    </div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        <!-- HUD -->
+        <div id="top-left" class="hud">
+            <div class="label">CURRENT ROLE</div>
+            <div id="role-display" class="value">INITIATE</div>
+        </div>
+
+        <div id="top-right" class="hud">
+            <div class="label">SKILL BUCKET</div>
+            <div id="skill-bucket"></div>
+            <div id="skill-count" class="value" style="margin-top: 10px;">0</div>
+        </div>
+
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="overlay-screen">
+            <h1 class="title">DATA QUEST 2026</h1>
+            <p style="font-size: 20px; color: #fff; margin-bottom: 20px;">The Career Roadmap Simulation</p>
+            <button id="start-btn" class="btn">INITIALIZE CORE</button>
+            <div class="instruction">
+                <span><span class="key">←</span> <span class="key">→</span> MOVE</span>
+                <span><span class="key">↑</span> JUMP</span>
+                <span><span class="key">↓</span> DIVE</span>
+            </div>
+            <div class="footer">Ideation : Satyaki Das - 2026</div>
+        </div>
+
+        <!-- Game Over / Victory -->
+        <div id="end-screen" class="overlay-screen hidden">
+            <h1 id="end-title" class="title">LEVEL UP!</h1>
+            <div id="end-stats" class="value" style="margin-bottom: 40px;">Data Architect Achieved</div>
+            <button id="restart-btn" class="btn">REBOOT SYSTEM</button>
+        </div>
+
+        <!-- Skill Modal -->
+        <div id="skill-modal">
+            <div class="label">SKILL ACQUIRED</div>
+            <h2 id="modal-skill-name">SQL</h2>
+            <p>You have successfully integrated this core competency into your neural network.</p>
+            <button id="proceed-btn" class="btn">PROCEED</button>
+        </div>
+
+        <!-- Level Complete Modal -->
+        <div id="level-modal">
+            <div class="label">ROLE MASTERED</div>
+            <h2 id="mastered-role-name">DATA ANALYST</h2>
+            <p>Core competencies secured for this domain:</p>
+            <div id="summary-skills" class="skill-summary"></div>
+            <button id="next-role-btn" class="btn">ENTER NEXT DOMAIN</button>
+        </div>
+
+        <!-- Career Notification -->
+        <div id="career-unlock">
+            <div class="label" style="color: var(--neon-green)">NETWORK AUTHENTICATED</div>
+            <div class="unlock-msg">DATA ANALYST</div>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants & Configuration
+        const CONFIG = {
+            LANES: [-4, 0, 4],
+            SPEED_START: 0.5,
+            SPEED_INC: 0.0001,
+            JUMP_FORCE: 0.25,
+            GRAVITY: 0.012,
+            MAX_ROAD_CHUNKS: 10,
+            SKILL_SPAWN_INTERVAL: 100, // frames
+            OBSTACLE_SPAWN_INTERVAL: 150,
+            ROLES: [
+                {
+                    name: "DATA ANALYST",
+                    color: 0x00f3ff,
+                    skills: ["Excel", "Advanced Excel", "SQL", "Python", "Numpy", "matplotlib", "pandas", "seaborn", "Basic Statistics", "Data Visualization", "Business Understanding"],
+                    theme: 'day'
+                },
+                {
+                    name: "DATA ENGINEER",
+                    color: 0x39ff14,
+                    skills: ["Python", "ETL", "Data Pipelines", "Advanced SQL", "Cloud Basics", "Airflow", "Snowflake", "Spark", "Kafka", "AWS/GCP"],
+                    theme: 'rain'
+                },
+                {
+                    name: "DATA SCIENTIST",
+                    color: 0xbc13fe,
+                    skills: ["Machine Learning", "Advanced Statistics", "Feature Engineering", "Model Evaluation", "TensorFlow", "Docker"],
+                    theme: 'night'
+                },
+                {
+                    name: "DATA ARCHITECT",
+                    color: 0xff00de,
+                    skills: ["System Design", "Data Warehousing", "Big Data", "Cloud Architecture", "Data Governance & Security", "Team Management"],
+                    theme: 'snow'
+                }
+            ]
+        };
+
+        // Game State
+        let state = {
+            running: false,
+            speed: CONFIG.SPEED_START,
+            playerLane: 1,
+            playerY: 0,
+            playerVY: 0,
+            isJumping: false,
+            isDiving: false,
+            skillsCollected: [],
+            currentRoleIndex: 0,
+            frame: 0,
+            gateActive: false,
+            totalSkillsCaught: 0,
+            weather: 'clear' // 'clear', 'rain', 'snow'
+        };
+
+        // Three.js Core
+        let scene, camera, renderer, player, weatherParticles, sunLight, ambientLight;
+        let roadChunks = [];
+        let items = []; // skills and obstacles
+        let clock = new THREE.Clock();
+
+        function init() {
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 6, 12);
+            camera.lookAt(0, 2, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            document.body.appendChild(renderer.domElement);
+
+            // Initial Environment Setup
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            sunLight.position.set(20, 40, 20);
+            scene.add(sunLight);
+
+            updateEnvironment('day');
+
+            // Create Player (FROG)
+            player = new THREE.Group();
+
+            const frogMat = new THREE.MeshStandardMaterial({ color: 0x39ff14, roughness: 0.5 });
+
+            // Body
+            const bodyGeo = new THREE.SphereGeometry(0.8, 16, 16);
+            bodyGeo.scale(1.2, 0.8, 1.5);
+            const body = new THREE.Mesh(bodyGeo, frogMat);
+            player.add(body);
+
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.6, 16, 16);
+            headGeo.scale(1, 0.8, 1);
+            const head = new THREE.Mesh(headGeo, frogMat);
+            head.position.set(0, 0.4, -0.6);
+            player.add(head);
+
+            // Eyes
+            const eyeGeo = new THREE.SphereGeometry(0.15, 16, 16);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeL.position.set(0.3, 0.7, -0.8);
+            player.add(eyeL);
+            const eyeR = eyeL.clone();
+            eyeR.position.x = -0.3;
+            player.add(eyeR);
+
+            // Legs
+            const legGeo = new THREE.SphereGeometry(0.3, 8, 8);
+            legGeo.scale(1, 0.5, 1.5);
+            const legL = new THREE.Mesh(legGeo, frogMat);
+            legL.position.set(0.7, -0.2, 0.5);
+            player.add(legL);
+            const legR = legL.clone();
+            legR.position.x = -0.7;
+            player.add(legR);
+
+            // Frog Mesh Animation (Wobble)
+            body.rotation.z = Math.sin(Date.now() * 0.01) * 0.1;
+            head.rotation.x = Math.sin(Date.now() * 0.005) * 0.1;
+
+            player.position.set(CONFIG.LANES[state.playerLane], 0.6, 0);
+            scene.add(player);
+
+            // Create initial road
+            for (let i = 0; i < CONFIG.MAX_ROAD_CHUNKS; i++) {
+                addRoadChunk(i * 20);
+            }
+
+            // Window Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Controls
+            window.addEventListener('keydown', handleInput);
+        }
+
+        function addRoadChunk(z) {
+            const group = new THREE.Group();
+
+            // Road surface (Textured look)
+            const roadGeo = new THREE.PlaneGeometry(16, 25);
+            const roadMat = new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                roughness: state.weather === 'rain' ? 0.1 : 0.8,
+                metalness: state.weather === 'rain' ? 0.5 : 0.1
+            });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            group.add(road);
+
+            // White Lane Markings
+            for (let i = -1; i <= 1; i += 2) {
+                const lineGeo = new THREE.PlaneGeometry(0.3, 10);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+                const line = new THREE.Mesh(lineGeo, lineMat);
+                line.rotation.x = -Math.PI / 2;
+                line.position.set(i * 4, 0.02, 0);
+                group.add(line);
+            }
+
+            // Sidewalks
+            const sideGeo = new THREE.PlaneGeometry(25, 25);
+            const sideMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const sL = new THREE.Mesh(sideGeo, sideMat);
+            sL.rotation.x = -Math.PI / 2;
+            sL.position.set(-20, 0.01, 0);
+            group.add(sL);
+            const sR = sL.clone();
+            sR.position.x = 20;
+            group.add(sR);
+
+            // Street Lights
+            for (let i = -1; i <= 1; i += 2) {
+                const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 8);
+                const pole = new THREE.Mesh(poleGeo, sideMat);
+                pole.position.set(i * 9, 4, 0);
+                group.add(pole);
+
+                const lampGeo = new THREE.BoxGeometry(2, 0.5, 1);
+                const lamp = new THREE.Mesh(lampGeo, sideMat);
+                lamp.position.set(i * 8, 8, 0);
+                group.add(lamp);
+
+                const light = new THREE.PointLight(0xffffaa, 5, 20);
+                light.position.set(i * 7.5, 7.5, 0);
+                group.add(light);
+            }
+
+            // Realistic Buildings
+            for (let side = -1; side <= 1; side += 2) {
+                if (side === 0) continue;
+                for (let j = 0; j < 2; j++) {
+                    const h = 40 + Math.random() * 60;
+                    const w = 15 + Math.random() * 5;
+                    const d = 15 + Math.random() * 5;
+
+                    const bGroup = new THREE.Group();
+
+                    // Main Structure
+                    const bGeo = new THREE.BoxGeometry(w, h, d);
+                    const bMat = new THREE.MeshStandardMaterial({
+                        color: state.weather === 'snow' ? 0xdddddd : 0x1a1a2e,
+                        roughness: 0.3,
+                        metalness: 0.7
+                    });
+                    const b = new THREE.Mesh(bGeo, bMat);
+                    bGroup.add(b);
+
+                    // Window Grid - glowing look
+                    const winRows = 10;
+                    const winCols = 4;
+                    const winGeo = new THREE.PlaneGeometry(1, 1.5);
+                    const winMat = new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: 0.5 });
+
+                    for (let r = 0; r < winRows; r++) {
+                        for (let c = 0; c < winCols; c++) {
+                            if (Math.random() < 0.2) continue;
+                            const win = new THREE.Mesh(winGeo, winMat);
+                            win.position.set(
+                                -w / 2 + 3 + c * 3,
+                                -h / 2 + 10 + r * 5,
+                                d / 2 + 0.1
+                            );
+                            bGroup.add(win);
+                        }
+                    }
+
+                    // Antennas / Roof Items
+                    const antGeo = new THREE.CylinderGeometry(0.05, 0.05, 5);
+                    const ant = new THREE.Mesh(antGeo, sideMat);
+                    ant.position.set(0, h / 2 + 2.5, 0);
+                    bGroup.add(ant);
+
+                    bGroup.position.set(side * (30 + Math.random() * 10), h / 2, (j - 1) * 12);
+                    group.add(bGroup);
+                }
+            }
+
+            group.position.z = -z;
+            scene.add(group);
+            roadChunks.push(group);
+        }
+
+        function handleInput(e) {
+            if (!state.running) return;
+
+            if (e.key === 'ArrowLeft' && state.playerLane > 0) {
+                state.playerLane--;
+                gsap.to(player.position, { x: CONFIG.LANES[state.playerLane], duration: 0.2 });
+            }
+            if (e.key === 'ArrowRight' && state.playerLane < 2) {
+                state.playerLane++;
+                gsap.to(player.position, { x: CONFIG.LANES[state.playerLane], duration: 0.2 });
+            }
+            if (e.key === 'ArrowUp' && !state.isJumping) {
+                state.playerVY = CONFIG.JUMP_FORCE;
+                state.isJumping = true;
+            }
+            if (e.key === 'ArrowDown' && !state.isDiving) {
+                gsap.to(player.scale, { y: 0.2, duration: 0.1 });
+                state.isDiving = true;
+                setTimeout(() => {
+                    gsap.to(player.scale, { y: 1.0, duration: 0.1 });
+                    state.isDiving = false;
+                }, 500);
+            }
+        }
+
+        function createTextTexture(text, color) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 1024; // Increased width for long strings
+            canvas.height = 256;
+
+            const upperText = text.toUpperCase();
+
+            // Dynamic Font Size
+            let fontSize = 100;
+            ctx.font = `bold ${fontSize}px Orbitron`;
+            while (ctx.measureText(upperText).width > 900 && fontSize > 40) {
+                fontSize -= 5;
+                ctx.font = `bold ${fontSize}px Orbitron`;
+            }
+
+            // Background Box
+            ctx.fillStyle = 'rgba(0,0,0,0.95)';
+            ctx.beginPath();
+            ctx.roundRect(20, 20, 984, 216, 40);
+            ctx.fill();
+
+            // Neon Border
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 15;
+            ctx.stroke();
+
+            // Text with Glow
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(upperText, canvas.width / 2, canvas.height / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        function createSkill() {
+            const lane = Math.floor(Math.random() * 3);
+            const currentRole = CONFIG.ROLES[state.currentRoleIndex];
+
+            if (!currentRole) return;
+
+            const missingSkills = currentRole.skills.filter(s => !state.skillsCollected.includes(s));
+            if (missingSkills.length === 0) return;
+
+            const skillName = missingSkills[Math.floor(Math.random() * missingSkills.length)];
+
+            const group = new THREE.Group();
+
+            // Skill Sphere
+            const geo = new THREE.SphereGeometry(0.8, 32, 32);
+            const mat = new THREE.MeshStandardMaterial({
+                color: currentRole.color,
+                emissive: currentRole.color,
+                emissiveIntensity: 0.6,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            group.add(mesh);
+
+            // Floating Label
+            const spriteMat = new THREE.SpriteMaterial({
+                map: createTextTexture(skillName, '#' + currentRole.color.toString(16).padStart(6, '0')),
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.y = 2.2;
+            sprite.scale.set(8, 2, 1);
+            group.add(sprite);
+
+            group.position.set(CONFIG.LANES[lane], 1.5, -100);
+            group.userData = { type: 'skill', lane: lane, name: skillName };
+
+            const light = new THREE.PointLight(currentRole.color, 2, 8);
+            group.add(light);
+
+            scene.add(group);
+            items.push(group);
+        }
+
+        function createObstacle() {
+            const lane = Math.floor(Math.random() * 3);
+            const group = new THREE.Group();
+
+            // Accidental Car (Crashed Car)
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xaa0000, metalness: 0.5, roughness: 0.8 }); // Red/Damaged look
+            const bodyGeo = new THREE.BoxGeometry(1.6, 0.5, 3);
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            group.add(body);
+
+            const cabinGeo = new THREE.BoxGeometry(1.2, 0.4, 1.3);
+            const cabinMat = new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.7 });
+            const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+            cabin.position.set(0, 0.4, 0);
+            group.add(cabin);
+
+            // Broken Wheels (Randomly tilted)
+            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 8);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            [[-0.9, 1.1], [0.9, 1.1], [-0.9, -1.1], [0.9, -1.1]].forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+                wheel.position.set(pos[0], -0.1, pos[1]);
+                group.add(wheel);
+            });
+
+            // Random rotation to look like an accident
+            group.rotation.y = (Math.random() - 0.5) * 0.4;
+
+            const isHigh = false; // Car is a ground obstacle
+            group.position.set(CONFIG.LANES[lane], 0.4, -100);
+            group.userData = { type: 'obstacle', lane: lane, isHigh: isHigh };
+
+            scene.add(group);
+            items.push(group);
+        }
+
+        function createDoor(roleName) {
+            const group = new THREE.Group();
+            const frameGeo = new THREE.BoxGeometry(12, 10, 1);
+            const frameMat = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, transparent: true, opacity: 0.3 });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            group.add(frame);
+
+            const portalGeo = new THREE.PlaneGeometry(10, 9);
+            const portalMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+            const portal = new THREE.Mesh(portalGeo, portalMat);
+            portal.position.z = 0.1;
+            group.add(portal);
+
+            group.position.set(0, 5, -100);
+            group.userData = { type: 'door', name: roleName };
+            scene.add(group);
+            items.push(group);
+        }
+
+        function updateEnvironment(theme) {
+            state.weather = 'clear';
+            let bgColor, fogColor, sunInt, ambInt;
+
+            switch (theme) {
+                case 'day':
+                    bgColor = 0x87ceeb; // Sky blue
+                    fogColor = 0x87ceeb;
+                    sunInt = 1.6;
+                    ambInt = 0.7;
+                    break;
+                case 'rain':
+                    bgColor = 0x444455; // Stormy grey
+                    fogColor = 0x444455;
+                    sunInt = 0.5;
+                    ambInt = 0.4;
+                    state.weather = 'rain';
+                    break;
+                case 'night':
+                    bgColor = 0x010105; // Deep space
+                    fogColor = 0x010105;
+                    sunInt = 0.1;
+                    ambInt = 0.1;
+                    break;
+                case 'snow':
+                    bgColor = 0x222233; // Cold night
+                    fogColor = 0x222233;
+                    sunInt = 0.8;
+                    ambInt = 0.4;
+                    state.weather = 'snow';
+                    break;
+            }
+
+            scene.background = new THREE.Color(bgColor);
+            scene.fog = new THREE.FogExp2(fogColor, 0.012);
+
+            gsap.to(sunLight, { intensity: sunInt, duration: 2 });
+            gsap.to(ambientLight, { intensity: ambInt, duration: 2 });
+
+            initWeather();
+
+            // Make road reflective if raining
+            roadChunks.forEach(chunk => {
+                const road = chunk.children.find(c => c.geometry && c.geometry.type === 'PlaneGeometry');
+                if (road && road.material) {
+                    road.material.roughness = state.weather === 'rain' ? 0.1 : 0.8;
+                    road.material.metalness = state.weather === 'rain' ? 0.5 : 0.1;
+                }
+            });
+        }
+
+        function initWeather() {
+            if (weatherParticles) scene.remove(weatherParticles);
+
+            const count = state.weather === 'rain' ? 8000 : state.weather === 'snow' ? 5000 : 0;
+            if (count === 0) return;
+
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) {
+                pos[i] = (Math.random() - 0.5) * 60;
+                pos[i + 1] = Math.random() * 40;
+                pos[i + 2] = (Math.random() - 0.5) * 60;
+            }
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+            const mat = new THREE.PointsMaterial({
+                color: state.weather === 'rain' ? 0xaaaaaa : 0xffffff,
+                size: state.weather === 'rain' ? 0.08 : 0.15,
+                transparent: true,
+                opacity: 0.6
+            });
+
+            weatherParticles = new THREE.Points(geo, mat);
+            scene.add(weatherParticles);
+        }
+
+        function createDrone() {
+            const group = new THREE.Group();
+            const bodyGeo = new THREE.BoxGeometry(1, 0.2, 1);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            group.add(body);
+
+            // Rotors
+            const rotorGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.05, 8);
+            const rotorMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.5 });
+            [-0.5, 0.5].forEach(x => {
+                [-0.5, 0.5].forEach(z => {
+                    const r = new THREE.Mesh(rotorGeo, rotorMat);
+                    r.position.set(x, 0.1, z);
+                    group.add(r);
+                });
+            });
+
+            group.position.set((Math.random() - 0.5) * 40, 15 + Math.random() * 10, -100);
+            group.userData = { type: 'drone' };
+            scene.add(group);
+            items.push(group);
+        }
+
+        function checkLevelUp() {
+            const currentRole = CONFIG.ROLES[state.currentRoleIndex];
+            if (currentRole) {
+                const missingSkills = currentRole.skills.filter(s => !state.skillsCollected.includes(s));
+                if (missingSkills.length === 0 && !state.gateActive) {
+                    // All skills for current role caught!
+                    const nextRole = CONFIG.ROLES[state.currentRoleIndex + 1];
+                    const doorName = nextRole ? nextRole.name : "MASTER ARCHITECT";
+                    createDoor(doorName);
+                    state.gateActive = true;
+                }
+            }
+        }
+
+        function update() {
+            if (!state.running) return;
+
+            state.frame++;
+            state.speed += CONFIG.SPEED_INC;
+
+            // Physics
+            if (state.isJumping) {
+                state.playerY += state.playerVY;
+                state.playerVY -= CONFIG.GRAVITY;
+                if (state.playerY <= 0) {
+                    state.playerY = 0;
+                    state.isJumping = false;
+                    state.playerVY = 0;
+                }
+                player.position.y = 0.5 + state.playerY;
+            }
+
+            // Move Road
+            roadChunks.forEach(chunk => {
+                chunk.position.z += state.speed;
+                if (chunk.position.z > 20) {
+                    chunk.position.z -= CONFIG.MAX_ROAD_CHUNKS * 20;
+                }
+            });
+
+            // Move & Collide Items
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                item.position.z += state.speed;
+
+                // Rotation for skills
+                if (item.userData.type === 'skill') {
+                    item.rotation.y += 0.05;
+                    item.rotation.x += 0.02;
+                }
+
+                // Collision Detection
+                const distZ = Math.abs(item.position.z - player.position.z);
+                const distX = Math.abs(item.position.x - player.position.x);
+                const distY = Math.abs(item.position.y - player.position.y);
+
+                if (distZ < 1 && distX < 1.2) {
+                    if (item.userData.type === 'skill') {
+                        const skillName = item.userData.name;
+
+                        if (!state.skillsCollected.includes(skillName)) {
+                            state.skillsCollected.push(skillName);
+                            state.totalSkillsCaught++;
+
+                            // Update UI
+                            document.getElementById('skill-count').innerText = state.totalSkillsCaught;
+
+                            // Add to bucket
+                            const bucket = document.getElementById('skill-bucket');
+                            const tag = document.createElement('div');
+                            tag.className = 'skill-tag';
+                            tag.style.borderColor = '#' + CONFIG.ROLES[state.currentRoleIndex].color.toString(16).padStart(6, '0');
+                            tag.innerText = skillName;
+                            bucket.appendChild(tag);
+
+                            // Frog Hop Animation on Catch
+                            gsap.to(player.position, { y: 2, duration: 0.1, yoyo: true, repeat: 1 });
+
+                            // Show Modal & Pause Game
+                            state.running = false;
+                            document.getElementById('modal-skill-name').innerText = skillName;
+                            document.getElementById('modal-skill-name').style.color = '#' + CONFIG.ROLES[state.currentRoleIndex].color.toString(16).padStart(6, '0');
+                            document.getElementById('skill-modal').style.display = 'block';
+                        }
+
+                        // Update Progress Bar
+                        const currentRole = CONFIG.ROLES[state.currentRoleIndex];
+                        if (currentRole) {
+                            const progress = (state.skillsCollected.length / currentRole.skills.length) * 100;
+                            document.getElementById('progress-bar').style.width = Math.min(progress, 100) + '%';
+                        }
+
+                        scene.remove(item);
+                        items.splice(i, 1);
+                        checkLevelUp();
+                        continue;
+                    }
+                    else if (item.userData.type === 'obstacle') {
+                        // Check if jumping over or diving under
+                        let hit = true;
+                        if (item.userData.isHigh && state.isDiving) hit = false;
+                        if (!item.userData.isHigh && state.isJumping && state.playerY > 1.0) hit = false;
+
+                        if (hit) {
+                            gameOver();
+                            return;
+                        }
+                    }
+                    else if (item.userData.type === 'door') {
+                        levelUp(item.userData.name);
+                        scene.remove(item);
+                        items.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                // Cleanup
+                if (item.position.z > 10) {
+                    if (item.userData.type === 'door') {
+                        // If player missed the door, reset gateActive so it can spawn again
+                        state.gateActive = false;
+                        checkLevelUp();
+                    }
+                    scene.remove(item);
+                    items.splice(i, 1);
+                }
+            }
+
+            // Spawning
+            if (!state.gateActive) {
+                if (state.frame % CONFIG.SKILL_SPAWN_INTERVAL === 0) createSkill();
+                if (state.frame % CONFIG.OBSTACLE_SPAWN_INTERVAL === 0) createObstacle();
+            }
+            if (state.frame % 200 === 0) createDrone();
+
+            // Weather Animation
+            if (weatherParticles) {
+                const positions = weatherParticles.geometry.attributes.position.array;
+                for (let i = 1; i < positions.length; i += 3) {
+                    positions[i] -= state.weather === 'rain' ? 1.0 : 0.3;
+                    if (positions[i] < 0) positions[i] = 40;
+                }
+                weatherParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Dynamic Camera
+            camera.position.x = player.position.x * 0.5;
+            camera.lookAt(player.position.x * 0.2, 2, 0);
+
+            requestAnimationFrame(update);
+            renderer.render(scene, camera);
+        }
+
+        function levelUp(roleName) {
+            // Show Mastered Skills in Modal before moving to next
+            const currentRole = CONFIG.ROLES[state.currentRoleIndex];
+
+            state.running = false;
+            document.getElementById('mastered-role-name').innerText = currentRole.name;
+
+            const summaryDiv = document.getElementById('summary-skills');
+            summaryDiv.innerHTML = '';
+            state.skillsCollected.forEach(skill => {
+                const tag = document.createElement('div');
+                tag.className = 'summary-tag';
+                tag.style.borderColor = '#' + currentRole.color.toString(16).padStart(6, '0');
+                tag.innerText = skill;
+                summaryDiv.appendChild(tag);
+            });
+
+            document.getElementById('level-modal').style.display = 'block';
+            document.getElementById('level-modal').style.borderColor = '#' + currentRole.color.toString(16).padStart(6, '0');
+
+            // Actual state transition happens after clicking button
+        }
+
+        function proceedToNextLevel() {
+            document.getElementById('level-modal').style.display = 'none';
+            state.running = true;
+
+            state.currentRoleIndex++;
+            state.gateActive = false;
+            state.skillsCollected = [];
+
+            const roleObj = CONFIG.ROLES[state.currentRoleIndex];
+            if (!roleObj) {
+                victory();
+                return;
+            }
+
+            // Theme transition
+            updateEnvironment(roleObj.theme);
+
+            // Clear bucket display
+            document.getElementById('skill-bucket').innerHTML = '';
+
+            // UI Update
+            document.getElementById('role-display').innerText = roleObj.name;
+            document.getElementById('progress-bar').style.width = '0%';
+
+            // Visual Update
+            gsap.to(renderer.domElement, { filter: 'brightness(3) saturate(2)', duration: 0.2, yoyo: true, repeat: 1 });
+
+            // Update frog color/glow based on role
+            if (player) {
+                player.traverse(child => {
+                    if (child.isMesh && child.material && child.material.type === 'MeshStandardMaterial') {
+                        child.material.color.setHex(roleObj.color);
+                    }
+                });
+            }
+
+            // Show Message
+            const unlockUI = document.getElementById('career-unlock');
+            unlockUI.querySelector('.unlock-msg').innerText = roleObj.name;
+            unlockUI.querySelector('.unlock-msg').style.color = '#' + roleObj.color.toString(16).padStart(6, '0');
+            gsap.to(unlockUI, { opacity: 1, duration: 0.5 });
+            gsap.to(unlockUI, { opacity: 0, duration: 0.5, delay: 2 });
+
+            update(); // Resume loop
+        }
+
+        function gameOver() {
+            state.running = false;
+            document.getElementById('end-screen').classList.remove('hidden');
+            document.getElementById('end-title').innerText = "SYSTEM CRASHED";
+            document.getElementById('end-title').style.background = "linear-gradient(135deg, #ff0000, #ff5555)";
+            document.getElementById('end-stats').innerText = `Role: ${CONFIG.ROLES[state.currentRoleIndex].name} | Skills: ${state.totalSkillsCaught}`;
+        }
+
+        function victory() {
+            state.running = false;
+            document.getElementById('end-screen').classList.remove('hidden');
+            document.getElementById('end-title').innerText = "ARCHITECT ASCENDED";
+            document.getElementById('end-stats').innerText = `Career Peak Reached! Total Skills: ${state.totalSkillsCaught}`;
+        }
+
+        function startGame() {
+            // Reset state
+            state = {
+                running: true,
+                speed: CONFIG.SPEED_START,
+                playerLane: 1,
+                playerY: 0,
+                playerVY: 0,
+                isJumping: false,
+                isDiving: false,
+                skillsCollected: [],
+                totalSkillsCaught: 0,
+                currentRoleIndex: 0,
+                frame: 0,
+                gateActive: false,
+                weather: 'clear'
+            };
+
+            updateEnvironment('day');
+
+            // Reset UI
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('skill-count').innerText = "0";
+            document.getElementById('skill-bucket').innerHTML = '';
+            document.getElementById('role-display').innerText = CONFIG.ROLES[0].name;
+            document.getElementById('progress-bar').style.width = "0%";
+
+            // Visual reset
+            if (player.children[0] && player.children[0].material) {
+                player.children[0].material.color.setHex(0x39ff14); // Reset to green frog
+            }
+
+            // Reset World
+            items.forEach(item => scene.remove(item));
+            items = [];
+            player.position.set(CONFIG.LANES[1], 0.6, 0);
+
+            update();
+        }
+
+        document.getElementById('proceed-btn').onclick = () => {
+            document.getElementById('skill-modal').style.display = 'none';
+            state.running = true;
+            update(); // Resume loop
+        };
+
+        document.getElementById('next-role-btn').onclick = proceedToNextLevel;
+
+        document.getElementById('start-btn').onclick = startGame;
+        document.getElementById('restart-btn').onclick = startGame;
+
+        init();
+        renderer.render(scene, camera); // Initial render
+    </script>
+</body>
+
+</html>
